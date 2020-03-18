@@ -6,10 +6,6 @@
 
 ## Commands
 
-### yarn build
-
-Build the package.
-
 ### yarn lint
 
 Runs the linter to make sure all is well with the world. Please make sure to do this prior to
