@@ -1,3 +1,5 @@
+import provider from 'eth-provider';
+
 import { ethers } from 'ethers';
 import { store } from 'react-easy-state';
 
@@ -16,7 +18,9 @@ export const eth = store({
   disconnected: false,
   error: undefined,
   networkId: undefined,
+  networkName: undefined,
   provider: undefined,
+  wrongNetwork: false,
 
   disconnect: () => {
     eth.disconnected = true;
@@ -27,42 +31,57 @@ export const eth = store({
     eth.error = undefined;
     blocknative.dismissError();
   },
-  getLibrary: (provider) => {
+  findProvider: () => {
+    const existingProvider = provider(['frame', 'injected']);
+
+    if (existingProvider) {
+      console.log('existingProvider', existingProvider);
+      eth.getLibrary(existingProvider);
+    }
+  },
+  getLibrary: (ethProvider) => {
+    const { networkVersion } = ethProvider;
+
     eth.reset();
     eth.dismissError();
 
     if (eth.disconnected) {
-      return undefined;
+      return;
     }
 
-    if (!provider.networkVersion) {
-      eth.error = 'Ethereum not found. Unable to connect. Is MetaMask installed?';
-      return undefined;
+    if (!networkVersion) {
+      eth.setError({ message: 'Ethereum not found. Unable to connect. Is MetaMask installed?' });
+      return;
     }
 
-    if (parseInt(provider.networkVersion, 10) !== internal.networkId) {
-      eth.wrongNetwork();
-      return undefined;
+    if (parseInt(networkVersion, 10) !== eth.networkId) {
+      eth.wrongNetworkError();
+      return;
     }
 
-    eth.initializeAccount(provider);
+    ethProvider.on('accountsChanged', () => {
+      eth.getLibrary(ethProvider);
+    });
 
-    return eth.provider;
+    eth.initializeAccount(ethProvider);
   },
   init: async ({ blocknativeDappId, network = defaultNetwork, simpleIdAppId }) => {
     internal.provider = ethers.getDefaultProvider(network);
     internal.network = await internal.provider.getNetwork();
+    internal.networkName = network;
 
     eth.disconnected = localStorage.getItem('disconnected') === 'true';
+    console.log(internal.network);
     eth.networkId = internal.network.chainId;
 
     blocknative.initialize(blocknativeDappId, eth.networkId);
     simpleId.initialize(simpleIdAppId, network);
   },
-  initializeAccount: async (provider) => {
-    eth.account = provider.selectedAddress;
-    eth.provider = new ethers.providers.Web3Provider(provider);
+  initializeAccount: async (ethProvider) => {
+    eth.account = ethProvider.selectedAddress;
+    eth.provider = new ethers.providers.Web3Provider(ethProvider);
     eth.signer = eth.provider.getSigner();
+    modal.close();
 
     simpleId.user({ address: eth.account });
   },
@@ -70,6 +89,7 @@ export const eth = store({
   reconnect: () => {
     eth.disconnected = false;
     localStorage.setItem('disconnected', false);
+    eth.findProvider();
   },
   reset: () => {
     eth.account = undefined;
@@ -80,8 +100,9 @@ export const eth = store({
     eth.error = message;
     blocknative.displayError({ message, eventCode, type });
   },
-  wrongNetwork: () => {
+  wrongNetworkError: () => {
     eth.reset();
+    eth.wrongNetwork = true;
     eth.setError({
       eventCode: 'wrongNetwork',
       message: `Incorrect network. Please connect to ${internal.networkName}.`,
@@ -102,13 +123,16 @@ export const modal = store({
     eth.disconnect();
     localStorage.setItem('disconnected', true);
   },
-  onError(e) {
-    if (e) {
-      console.error('@pie-dao/eth: modal activate error', e);
+  onError({ message }) {
+    modal.isPending = false;
+
+    if (message) {
+      console.error('@pie-dao/eth: modal activate error', message);
+
+      // TODO: handle incorrect network
     }
 
-    modal.isPending = false;
-    eth.wrongNetwork();
+    eth.setError({ message });
   },
   open: () => {
     modal.isActive = true;

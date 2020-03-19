@@ -29,6 +29,20 @@ class BlocknativeAdapter {
     }
   }
 
+  displayError({ message, eventCode = 'error', type = 'error' }) {
+    if (!this.connected) {
+      warn();
+      return;
+    }
+
+    if (!message) {
+      this._error = this._notify.notification({ eventCode, type, message: 'System error' });
+      console.trace('@pie-dao/eth: No message given to notify');
+    } else {
+      this._error = this._notify.notification({ eventCode, type, message });
+    }
+  }
+
   notify(hash) {
     if (!this.connected) {
       warn();
@@ -37,15 +51,6 @@ class BlocknativeAdapter {
 
     const { emitter } = this._notify.hash(hash);
     return { emitter, hash };
-  }
-
-  setError({ message, eventCode = 'error', type = 'error' }) {
-    if (!this.connected) {
-      warn();
-      return;
-    }
-
-    this._error = this._notify.notification({ eventCode, type, message });
   }
 }
 

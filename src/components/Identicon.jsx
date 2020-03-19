@@ -4,7 +4,7 @@ import Jazzicon from 'jazzicon';
 
 import { view } from 'react-easy-state';
 
-import eth from '../store';
+import { eth } from '../store';
 
 const Identicon = ({ diameter }) => {
   const ref = useRef();
