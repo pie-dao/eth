@@ -10,11 +10,9 @@ import Identicon from './Identicon';
 const ConnectButton = () => {
   const shortAddress = eth.account ? shortenAddress(eth.account) : '';
 
-  console.log('ACCOUNT', eth.account, shortAddress);
-
   return (
     <div
-      className="connect-button-container"
+      className="btn connect-button-container"
       onClick={modal.open}
       onKeyPress={modal.open}
       role="button"

@@ -1,3 +1,4 @@
+/* eslint no-use-before-define: 0 */
 import provider from 'eth-provider';
 
 import { ethers } from 'ethers';
@@ -76,6 +77,8 @@ export const eth = store({
 
     blocknative.initialize(blocknativeDappId, eth.networkId);
     simpleId.initialize(simpleIdAppId, network);
+
+    window.addEventListener('DOMContentLoaded', eth.findProvider);
   },
   initializeAccount: async (ethProvider) => {
     eth.account = ethProvider.selectedAddress;

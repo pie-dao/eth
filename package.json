@@ -15,6 +15,7 @@
     "release": "npm publish --access=public"
   },
   "dependencies": {
+    "@pie-dao/eth-tailwind": "1.0.0",
     "@pie-dao/if-unless": "^1.0.1",
     "bignumber.js": "^9.0.0",
     "bnc-notify": "^1.1.0",
