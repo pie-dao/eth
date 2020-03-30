@@ -1,9 +1,9 @@
 import React from 'react';
 
+import { shortenAddress } from '@pie-dao/utils';
 import { view } from 'react-easy-state';
 
 import { eth, modal } from '../store';
-import { shortenAddress } from '../utils/address';
 
 import Identicon from './Identicon';
 

@@ -1,8 +1,12 @@
 /* eslint no-use-before-define: 0 */
+import BigNumber from 'bignumber.js';
 import provider from 'eth-provider';
+import PubSub from 'pubsub-js';
 
+import { erc20 } from '@pie-dao/abis';
 import { ethers } from 'ethers';
 import { store } from 'react-easy-state';
+import { validateIsBigNumber } from '@pie-dao/utils';
 
 import blocknative from './adapters/blocknative';
 import simpleId from './adapters/simpleId';
@@ -14,6 +18,8 @@ const internal = {
   network: {},
 };
 
+const logPrefix = (functionName) => `@pie-dao/eth - eth#${functionName}`;
+
 export const eth = store({
   account: undefined,
   disconnected: false,
@@ -21,8 +27,26 @@ export const eth = store({
   networkId: undefined,
   networkName: undefined,
   provider: undefined,
+  signer: undefined,
   wrongNetwork: false,
 
+  approve: async ({ amount, spender, token }) => {
+    if (!eth.account) {
+      eth.setError('Your wallet must be connected before you can approve an asset for transfer.');
+    }
+
+    const prefix = logPrefix('approve');
+    const value = BigNumber(amount.toString());
+
+    validateIsBigNumber(value, { prefix });
+
+    const { signer } = eth;
+    const contract = new ethers.Contract(token, erc20, signer);
+    const decimals = BigNumber((await contract.decimals()).toString());
+
+    // TODO: gas estimate
+    eth.notify(contract.approve(spender, value.multipliedBy(10 ** decimals).toFixed(0)));
+  },
   disconnect: () => {
     eth.disconnected = true;
     eth.reset();
@@ -81,7 +105,9 @@ export const eth = store({
     window.addEventListener('DOMContentLoaded', eth.findProvider);
   },
   initializeAccount: async (ethProvider) => {
-    eth.account = ethProvider.selectedAddress;
+    const { selectedAddress } = ethProvider;
+    eth.account = selectedAddress;
+    PubSub.publish('addressChanged', { address: selectedAddress });
     eth.provider = new ethers.providers.Web3Provider(ethProvider);
     eth.signer = eth.provider.getSigner();
     modal.close();
@@ -89,6 +115,7 @@ export const eth = store({
     simpleId.user({ address: eth.account });
   },
   notify: ({ hash }) => blocknative.notify(hash),
+  on: (event, subscriber) => PubSub.subscribe(event, subscriber),
   reconnect: () => {
     eth.disconnected = false;
     localStorage.setItem('disconnected', false);
