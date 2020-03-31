@@ -9,6 +9,7 @@ import { store } from 'react-easy-state';
 import { validateIsBigNumber } from '@pie-dao/utils';
 
 import blocknative from './adapters/blocknative';
+import gasPrices from './adapters/ethGasStation';
 import simpleId from './adapters/simpleId';
 
 import { defaultNetwork } from './config';
@@ -19,6 +20,11 @@ const internal = {
 };
 
 const logPrefix = (functionName) => `@pie-dao/eth - eth#${functionName}`;
+
+const transactionOverrides = ({ gasLimit = 21000 }) => ({
+  gasLimit,
+  gasPrice: ethers.utils.parseUnits(gasPrices.fast.toString(), 'gwei'),
+});
 
 export const eth = store({
   account: undefined,
@@ -44,8 +50,9 @@ export const eth = store({
     const contract = new ethers.Contract(token, erc20, signer);
     const decimals = BigNumber((await contract.decimals()).toString());
 
-    // TODO: gas estimate
-    eth.notify(contract.approve(spender, value.multipliedBy(10 ** decimals).toFixed(0)));
+    const overrides = transactionOverrides({ gasLimit: 50000 });
+    const amt = value.multipliedBy(10 ** decimals).toFixed(0);
+    eth.notify(contract.approve(spender, amt, overrides));
   },
   disconnect: () => {
     eth.disconnected = true;
