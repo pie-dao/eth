@@ -62,6 +62,7 @@ export class GasPrices {
   }
 
   start() {
+    this.stop();
     this.enqueue();
   }
 

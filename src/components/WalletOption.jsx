@@ -1,7 +1,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 
-import { view } from 'react-easy-state';
+import { view } from '@risingstack/react-easy-state';
 
 const WalletOption = ({ onClick }) => (
   <div

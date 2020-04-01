@@ -19,6 +19,7 @@
     "@pie-dao/eth-tailwind": "1.0.0",
     "@pie-dao/if-unless": "^1.0.1",
     "@pie-dao/utils": "file:../utils",
+    "@risingstack/react-easy-state": "^6.2.0",
     "bignumber.js": "^9.0.0",
     "bnc-notify": "^1.1.0",
     "eth-provider": "^0.2.5",
@@ -29,7 +30,6 @@
     "pubsub-js": "^1.8.0",
     "react": "^16.13.0",
     "react-dom": "^16.13.0",
-    "react-easy-state": "^6.1.3",
     "simpleid-js-sdk": "^1.1.0",
     "styled-components": "^5.0.1",
     "tailwindcss": "^1.2.0"

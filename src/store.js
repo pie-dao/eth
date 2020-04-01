@@ -5,7 +5,7 @@ import PubSub from 'pubsub-js';
 
 import { erc20 } from '@pie-dao/abis';
 import { ethers } from 'ethers';
-import { store } from 'react-easy-state';
+import { store } from '@risingstack/react-easy-state';
 import { validateIsBigNumber } from '@pie-dao/utils';
 
 import blocknative from './adapters/blocknative';
@@ -114,7 +114,7 @@ export const eth = store({
   initializeAccount: async (ethProvider) => {
     const { selectedAddress } = ethProvider;
     eth.account = selectedAddress;
-    PubSub.publish('addressChanged', { address: selectedAddress });
+    PubSub.publish('accountChanged', { account: selectedAddress });
     eth.provider = new ethers.providers.Web3Provider(ethProvider);
     eth.signer = eth.provider.getSigner();
     modal.close();

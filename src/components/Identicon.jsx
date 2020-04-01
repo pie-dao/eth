@@ -2,7 +2,7 @@ import React, { useEffect, useRef } from 'react';
 import PropTypes from 'prop-types';
 import Jazzicon from 'jazzicon';
 
-import { view } from 'react-easy-state';
+import { view } from '@risingstack/react-easy-state';
 
 import { eth } from '../store';
 

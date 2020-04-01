@@ -2,7 +2,7 @@ import React from 'react';
 
 import { If, Unless } from '@pie-dao/if-unless';
 import { Modal } from 'minimal-react-modal';
-import { view } from 'react-easy-state';
+import { view } from '@risingstack/react-easy-state';
 
 import { eth, modal } from '../store';
 import WalletOption from './WalletOption';
