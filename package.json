@@ -1,6 +1,6 @@
 {
   "name": "@pie-dao/eth",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "PieDAO's eth wrapper. Provides connection and wallet state management.",
   "main": "dist/index.js",
   "repository": "https://github.com/pie-dao/eth.git",
@@ -15,10 +15,10 @@
     "release": "npm publish --access=public"
   },
   "dependencies": {
-    "@pie-dao/abis": "file:../abis",
+    "@pie-dao/abis": "^1.0.0",
     "@pie-dao/eth-tailwind": "1.0.0",
     "@pie-dao/if-unless": "^1.0.1",
-    "@pie-dao/utils": "file:../utils",
+    "@pie-dao/utils": "^1.0.0",
     "@risingstack/react-easy-state": "^6.2.0",
     "bignumber.js": "^9.0.0",
     "bnc-notify": "^1.1.0",
