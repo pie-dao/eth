@@ -21,11 +21,6 @@ const internal = {
 
 const logPrefix = (functionName) => `@pie-dao/eth - eth#${functionName}`;
 
-const transactionOverrides = ({ gasLimit = 21000 }) => ({
-  gasLimit,
-  gasPrice: ethers.utils.parseUnits(gasPrices.fast.toString(), 'gwei'),
-});
-
 export const eth = store({
   account: undefined,
   disconnected: false,
@@ -36,9 +31,17 @@ export const eth = store({
   signer: undefined,
   wrongNetwork: false,
 
-  approve: async ({ amount, spender, token }) => {
-    if (!eth.account) {
-      eth.setError('Your wallet must be connected before you can approve an asset for transfer.');
+  approve: async ({ spender, token, amount = ethers.constants.MaxUint256 }) => {
+    const {
+      account,
+      notify,
+      setError,
+      signer,
+      transactionOverrides,
+    } = eth;
+
+    if (!account) {
+      setError('Your wallet must be connected before you can approve an asset for transfer.');
     }
 
     const prefix = logPrefix('approve');
@@ -46,13 +49,14 @@ export const eth = store({
 
     validateIsBigNumber(value, { prefix });
 
-    const { signer } = eth;
     const contract = new ethers.Contract(token, erc20, signer);
-    const decimals = BigNumber((await contract.decimals()).toString());
+    const allowance = await contract.allowance(account, spender);
 
-    const overrides = transactionOverrides({ gasLimit: 50000 });
-    const amt = value.multipliedBy(10 ** decimals).toFixed(0);
-    eth.notify(contract.approve(spender, amt, overrides));
+    if (allowance.isZero()) {
+      const amt = ethers.utils.bigNumberify(value.toFixed());
+      const overrides = transactionOverrides({ gasLimit: 100000 });
+      notify(await contract.approve(spender, amt, overrides));
+    }
   },
   disconnect: () => {
     eth.disconnected = true;
@@ -137,6 +141,10 @@ export const eth = store({
     eth.error = message;
     blocknative.displayError({ message, eventCode, type });
   },
+  transactionOverrides: ({ gasLimit = 21000 }) => ({
+    gasLimit,
+    gasPrice: ethers.utils.parseUnits(gasPrices.fast.toFixed(), 'gwei'),
+  }),
   wrongNetworkError: () => {
     eth.reset();
     eth.wrongNetwork = true;
