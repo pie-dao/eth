@@ -1,6 +1,6 @@
 /* eslint no-use-before-define: 0 */
 import BigNumber from 'bignumber.js';
-import provider from 'eth-provider';
+import isMobile from 'ismobilejs';
 import PubSub from 'pubsub-js';
 
 import { erc20 } from '@pie-dao/abis';
@@ -13,6 +13,7 @@ import gasPrices from './adapters/ethGasStation';
 import simpleId from './adapters/simpleId';
 
 import { defaultNetwork } from './config';
+import { enable, metamaskProvider, metamaskMobileProvider } from './adapters/ethereumProviders';
 
 const internal = {
   provider: undefined,
@@ -23,6 +24,7 @@ const logPrefix = (functionName) => `@pie-dao/eth - eth#${functionName}`;
 
 export const eth = store({
   account: undefined,
+  chainId: undefined,
   disconnected: false,
   error: undefined,
   networkId: undefined,
@@ -67,16 +69,30 @@ export const eth = store({
     eth.error = undefined;
     blocknative.dismissError();
   },
-  findProvider: () => {
-    const existingProvider = provider(['frame', 'injected']);
-
-    if (existingProvider) {
-      console.log('existingProvider', existingProvider);
-      eth.getLibrary(existingProvider);
-    }
+  enable: () => {
+    console.log('internal', internal);
+    enable(internal.provider);
   },
-  getLibrary: (ethProvider) => {
-    const { networkVersion } = ethProvider;
+  findProvider: async () => {
+    const prefix = logPrefix('findProvider');
+
+    if (!internal.provider) {
+      internal.provider = undefined;
+
+      try {
+        if (isMobile.any) {
+          console.log('mobile');
+          internal.provider = await metamaskMobileProvider(); // TODO: add others
+        } else {
+          console.log('not mobile');
+          internal.provider = await metamaskProvider(); // TODO: add others
+        }
+      } catch (e) {
+        console.error(prefix, e);
+      }
+    }
+
+    console.log('internal post findProvider', internal);
 
     eth.reset();
     eth.dismissError();
@@ -85,52 +101,72 @@ export const eth = store({
       return;
     }
 
-    if (!networkVersion) {
-      eth.setError({ message: 'Ethereum not found. Unable to connect. Is MetaMask installed?' });
+    if (!internal.provider) {
+      eth.setError({ message: 'Ethereum not found. Unable to connect.' });
       return;
     }
 
-    if (parseInt(networkVersion, 10) !== eth.networkId) {
+    eth.initializeAccount();
+  },
+  init: async ({ blocknativeDappId, network = defaultNetwork, simpleIdAppId }) => {
+    const provider = ethers.getDefaultProvider(network);
+    internal.network = await provider.getNetwork();
+    internal.networkName = network;
+
+    eth.disconnected = localStorage.getItem('disconnected') === 'true';
+    eth.chainId = internal.network.chainId;
+    eth.networkId = `${internal.network.chainId}`;
+
+    blocknative.initialize(blocknativeDappId, eth.chainId);
+    simpleId.initialize(simpleIdAppId, network);
+
+    PubSub.subscribe('providerAccountChanged', (message, newProvider) => {
+      console.log('providerAccountChanged', newProvider);
+      internal.provider = newProvider;
+      eth.findProvider();
+    });
+
+    PubSub.subscribe('providerChainChanged', (message, newProvider) => {
+      console.log('providerChainChanged', newProvider);
+      internal.provider = newProvider;
+      eth.findProvider();
+    });
+
+    window.addEventListener('DOMContentLoaded', () => { eth.findProvider(); });
+  },
+  initializeAccount: async () => {
+    const {
+      account,
+      chainId,
+      provider,
+      signer,
+    } = internal.provider;
+
+    if (eth.chainId !== chainId) {
       eth.wrongNetworkError();
       return;
     }
 
-    ethProvider.on('accountsChanged', () => {
-      eth.getLibrary(ethProvider);
-    });
+    if (!account) {
+      return;
+    }
 
-    eth.initializeAccount(ethProvider);
-  },
-  init: async ({ blocknativeDappId, network = defaultNetwork, simpleIdAppId }) => {
-    internal.provider = ethers.getDefaultProvider(network);
-    internal.network = await internal.provider.getNetwork();
-    internal.networkName = network;
+    eth.account = account;
+    eth.provider = provider;
+    eth.signer = signer;
 
-    eth.disconnected = localStorage.getItem('disconnected') === 'true';
-    console.log(internal.network);
-    eth.networkId = internal.network.chainId;
+    PubSub.publish('accountChanged', { account });
 
-    blocknative.initialize(blocknativeDappId, eth.networkId);
-    simpleId.initialize(simpleIdAppId, network);
-
-    window.addEventListener('DOMContentLoaded', eth.findProvider);
-  },
-  initializeAccount: async (ethProvider) => {
-    const { selectedAddress } = ethProvider;
-    eth.account = selectedAddress;
-    PubSub.publish('accountChanged', { account: selectedAddress });
-    eth.provider = new ethers.providers.Web3Provider(ethProvider);
-    eth.signer = eth.provider.getSigner();
     modal.close();
 
-    simpleId.user({ address: eth.account });
+    simpleId.user({ address: account });
   },
   notify: ({ hash }) => blocknative.notify(hash),
   on: (event, subscriber) => PubSub.subscribe(event, subscriber),
   reconnect: () => {
     eth.disconnected = false;
     localStorage.setItem('disconnected', false);
-    eth.findProvider();
+    eth.findProvider(0);
   },
   reset: () => {
     eth.account = undefined;

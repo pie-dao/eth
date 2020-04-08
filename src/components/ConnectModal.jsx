@@ -14,7 +14,7 @@ const disconnect = () => {
 const onClick = () => {
   modal.reconnect();
   modal.isPending = true;
-  window.ethereum.enable().catch(modal.onError);
+  eth.enable().catch(modal.onError);
 };
 
 const ConnectModal = () => {
